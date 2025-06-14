@@ -10,7 +10,7 @@ M.upload_files = function(file_paths)
 	end
 
 	for _, file in ipairs(file_paths) do
-		local cmd = "curl -F 'file=@" .. file .. "' " .. BASE_URL
+		local cmd = "curl -A 'curl/7.68.8' -F 'file=@" .. file .. "' " .. BASE_URL
 
 		print(MSG_PREFIX .. "Uploading to " .. BASE_URL)
 
