@@ -3,7 +3,10 @@ local BASE_URL = "https://0x0.st/"
 local MSG_PREFIX = "nvim-0x0:: "
 
 -- Function to upload files from a list of paths
-M.upload_files = function(file_paths)
+M.upload_files = function(file_paths, opts)
+	opts = opts or {}
+	local append_filename = opts.append_filename or false
+
 	if #file_paths == 0 then
 		print(MSG_PREFIX .. "No files to upload!")
 		return
@@ -18,6 +21,11 @@ M.upload_files = function(file_paths)
 
 		local url = output:match("[%w%.%-]+://[%w%.%-]+/[%w%-%./]+")
 		if url then
+			if append_filename then
+				local basename = vim.fn.fnamemodify(file, ":t")
+				url = url .. "/" .. basename
+			end
+
 			print(MSG_PREFIX .. "Uploaded to " .. url)
 			vim.fn.setreg("+", url)
 			print(MSG_PREFIX .. "URL copied to clipboard")
@@ -96,7 +104,7 @@ M.upload_yank = function()
 end
 
 -- Upload the current file in buffer
-M.upload_current_file = function()
+M.upload_current_file = function(opts)
 	local file = vim.fn.expand("%:p")
 
 	if file == "" then
@@ -107,21 +115,20 @@ M.upload_current_file = function()
 	end
 
 	if vim.fn.filereadable(file) == 1 then
-		M.upload_files({ file })
+		M.upload_files({ file }, opts or {})
 	else
 		print(MSG_PREFIX .. "No file to upload!")
 	end
 end
 
 -- Upload the current file under cursor on Oil.nvim
-M.upload_oil_file = function()
+M.upload_oil_file = function(opts)
 	if vim.bo.filetype ~= "oil" then
 		print(MSG_PREFIX .. "Not in an oil.nvim window!")
 		return
 	end
 
 	local oil = require("oil")
-
 	local entry = oil.get_cursor_entry()
 
 	if not entry then
@@ -130,8 +137,7 @@ M.upload_oil_file = function()
 	end
 
 	local file_path = oil.get_current_dir() .. "/" .. entry.name
-
-	M.upload_files({ file_path })
+	M.upload_files({ file_path }, opts or {})
 end
 
 -- Provide a function to change the base URL
@@ -158,6 +164,12 @@ M.setup = function(opts)
 			{ noremap = true, silent = true, desc = "Upload the current file" }
 		)
 		vim.api.nvim_set_keymap(
+			"n",
+			"<leader>0F",
+			[[:lua require("nvim-0x0").upload_current_file({ append_filename = true })<CR>]],
+			{ noremap = true, silent = true, desc = "Upload current file with filename in URL" }
+		)
+		vim.api.nvim_set_keymap(
 			"v",
 			"<leader>0s",
 			':lua require("nvim-0x0").upload_selection()<CR>',
@@ -174,6 +186,12 @@ M.setup = function(opts)
 			"<leader>0o",
 			':lua require("nvim-0x0").upload_oil_file()<CR>',
 			{ noremap = true, silent = true, desc = "Upload a file from oil.nvim" }
+		)
+		vim.api.nvim_set_keymap(
+			"n",
+			"<leader>0O",
+			[[:lua require("nvim-0x0").upload_oil_file({ append_filename = true })<CR>]],
+			{ noremap = true, silent = true, desc = "Upload oil.nvim file with filename in URL" }
 		)
 	end
 end
